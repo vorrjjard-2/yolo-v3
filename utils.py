@@ -66,6 +66,8 @@ def denormalize_bboxes(raw_bboxes, W, H):
 
     return denorm_boxes
 
+
+
 def iou_width_height(boxes1, boxes2):
     """
     Parameters:
@@ -287,49 +289,31 @@ def mean_average_precision(
     return sum(average_precisions) / len(average_precisions)
 
 
-def plot_image(image, boxes):
-    """Plots predicted bounding boxes on the image"""
-    cmap = plt.get_cmap("tab20b")
-    class_labels = config.COCO_LABELS if config.DATASET=='COCO' else config.PASCAL_CLASSES
-    colors = [cmap(i) for i in np.linspace(0, 1, len(class_labels))]
-    im = np.array(image)
-    height, width, _ = im.shape
+def plot_image(raw_img, bboxes):
+    raw_img = raw_img.permute(1, 2, 0)
+    bboxes = denormalize_bboxes(bboxes, config.IMAGE_SIZE, config.IMAGE_SIZE)
 
-    # Create figure and axes
+    image = np.array(raw_img)
     fig, ax = plt.subplots(1)
-    # Display the image
-    ax.imshow(im)
 
-    # box[0] is x midpoint, box[2] is width
-    # box[1] is y midpoint, box[3] is height
+    print(image.shape)
 
-    # Create a Rectangle patch
-    for box in boxes:
-        assert len(box) == 6, "box should contain class pred, confidence, x, y, width, height"
-        class_pred = box[0]
-        box = box[2:]
-        upper_left_x = box[0] - box[2] / 2
-        upper_left_y = box[1] - box[3] / 2
-        rect = patches.Rectangle(
-            (upper_left_x * width, upper_left_y * height),
-            box[2] * width,
-            box[3] * height,
-            linewidth=2,
-            edgecolor=colors[int(class_pred)],
-            facecolor="none",
-        )
-        # Add the patch to the Axes
+    ax.imshow(image)
+    for bbox_coords in bboxes:
+        rect = patches.Rectangle((bbox_coords[2], bbox_coords[3]),
+                                bbox_coords[4], bbox_coords[5],
+                                linewidth=2, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
-        plt.text(
-            upper_left_x * width,
-            upper_left_y * height,
-            s=class_labels[int(class_pred)],
-            color="white",
-            verticalalignment="top",
-            bbox={"color": colors[int(class_pred)], "pad": 0},
-        )
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+
+    print(f'Displaying images with {len(bboxes)} boxes.' )
 
     plt.show()
+    plt.savefig('fig.jpg')
 
 
 def get_evaluation_bboxes(
@@ -491,8 +475,6 @@ def load_checkpoint(checkpoint_file, model, optimizer, lr):
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
 
-    # If we don't do this then it will just have learning rate of old checkpoint
-    # and it will lead to many hours of debugging \:
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
 
@@ -576,8 +558,6 @@ def plot_couple_examples(model, loader, thresh, iou_thresh, anchors):
             bboxes[i], iou_threshold=iou_thresh, threshold=thresh, box_format="midpoint",
         )
         plot_image(x[i].permute(1,2,0).detach().cpu(), nms_boxes)
-
-
 
 def seed_everything(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
