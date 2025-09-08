@@ -8,9 +8,14 @@ import os
 import pandas as pd
 import torch
 
+import cv2
+
 from PIL import Image, ImageFile
 from torch.utils.data import Dataset, DataLoader
 from utils import (
+    pre_index,
+    normalize_bboxes,
+    denormalize_bboxes,
     cells_to_bboxes,
     iou_width_height as iou,
     non_max_suppression as nms,
@@ -22,19 +27,16 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 class YOLODataset(Dataset):
     def __init__(
         self,
-        csv_file,
-        img_dir,
-        label_dir,
+        split,
         anchors,
-        image_size=416,
         S=[13, 26, 52],
         C=20,
         transform=None,
     ):
-        self.annotations = pd.read_csv(csv_file)
-        self.img_dir = img_dir
-        self.label_dir = label_dir
-        self.image_size = image_size
+        self.split = split
+        self.id_annotations, self.id_images, self.id_categories = pre_index(
+            os.path.join('datasets', config.DATASET, self.split, '_annotations.coco.json')
+        )
         self.transform = transform
         self.S = S
         self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])  # for all 3 scales
@@ -44,20 +46,28 @@ class YOLODataset(Dataset):
         self.ignore_iou_thresh = 0.5
 
     def __len__(self):
-        return len(self.annotations)
+        return len(self.id_annotations)
+
 
     def __getitem__(self, index):
-        label_path = os.path.join(self.label_dir, self.annotations.iloc[index, 1])
-        bboxes = np.roll(np.loadtxt(fname=label_path, delimiter=" ", ndmin=2), 4, axis=1).tolist()
-        img_path = os.path.join(self.img_dir, self.annotations.iloc[index, 0])
-        image = np.array(Image.open(img_path).convert("RGB"))
+        # FROM HERE
 
+        raw_path, W, H = self.id_images[index]
+        raw_bboxes = self.id_annotations[index]
+
+        bboxes = normalize_bboxes(raw_bboxes, W, H)
+        image = np.array(cv2.cvtColor(cv2.imread(os.path.join(config.DATA_ROOT, config.DATASET, self.split, raw_path)), cv2.COLOR_BGR2RGB))
+    
+        class_labels = [box[0] for box in bboxes]
+        coords_only = [box[1:] for box in bboxes]
+        
         if self.transform:
-            augmentations = self.transform(image=image, bboxes=bboxes)
-            image = augmentations["image"]
-            bboxes = augmentations["bboxes"]
+            augmented = self.transform(image=image, bboxes=coords_only, class_labels=class_labels)
+            image = augmented["image"]
+            coords_only = augmented["bboxes"]
+            class_labels = augmented["class_labels"]
+            bboxes = [list(coord) + [cls] for cls, coord in zip(class_labels, coords_only)]
 
-        # Below assumes 3 scale predictions (as paper) and same num of anchors per scale
         targets = [torch.zeros((self.num_anchors // 3, S, S, 6)) for S in self.S]
         for box in bboxes:
             iou_anchors = iou(torch.tensor(box[2:4]), self.anchors)
@@ -96,9 +106,7 @@ def test():
     transform = config.test_transforms
 
     dataset = YOLODataset(
-        "COCO/train.csv",
-        "COCO/images/images/",
-        "COCO/labels/labels_new/",
+        'train',
         S=[13, 26, 52],
         anchors=anchors,
         transform=transform,
@@ -113,13 +121,10 @@ def test():
 
         for i in range(y[0].shape[1]):
             anchor = scaled_anchors[i]
-            print(anchor.shape)
-            print(y[i].shape)
             boxes += cells_to_bboxes(
                 y[i], is_preds=False, S=y[i].shape[2], anchors=anchor
             )[0]
         boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
-        print(boxes)
         plot_image(x[0].permute(1, 2, 0).to("cpu"), boxes)
 
 
