@@ -16,20 +16,18 @@ class YoloLoss(nn.Module):
         self.lambda_box = 10
 
     def forward(self, predictions, target, anchors):
-
-
         obj = target[..., 0] == 1
         noobj = target[..., 0] == 0
 
         no_object_loss = self.bce(
-            predictions[..., 0:1][noobj], (target[..., 0:1][noobj])
-            )
+           predictions[..., 0:1][noobj], target[..., 0:1][noobj]
+           )
 
         #object loss
         anchors = anchors.reshape(1, 3, 1, 1, 2) 
         box_preds = torch.cat([self.sigmoid(predictions[..., 1:3]), torch.exp(predictions[..., 3:5]) * anchors], dim=-1)
         ious = intersection_over_union(box_preds[obj], target[...,1:5][obj]).detach()
-        object_loss = self.bce((predictions[..., 0:1][obj]), (target[...,0:1]))
+        object_loss = self.bce((predictions[..., 0:1][obj]), (target[...,0:1][obj]))
 
         #box_coordinate loss
         predictions[..., 1:3] = self.sigmoid(predictions[..., 1:3])
