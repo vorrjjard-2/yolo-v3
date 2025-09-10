@@ -16,6 +16,8 @@ class YoloLoss(nn.Module):
         self.lambda_box = 10
 
     def forward(self, predictions, target, anchors):
+
+
         obj = target[..., 0] == 1
         noobj = target[..., 0] == 0
 

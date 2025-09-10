@@ -1,7 +1,3 @@
-"""
-Main file for training Yolo model on Pascal VOC and COCO dataset
-"""
-
 import config
 import torch
 import torch.optim as optim
@@ -37,7 +33,7 @@ def train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors):
 
         with torch.cuda.amp.autocast():
             out = model(x)
-            print(f"model size : {out}")
+            print(f"model size : {type(out)}")
             loss = (
                 loss_fn(out[0], y0, scaled_anchors[0])
                 + loss_fn(out[1], y1, scaled_anchors[1])

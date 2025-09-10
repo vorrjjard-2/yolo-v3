@@ -50,6 +50,9 @@ class YOLODataset(Dataset):
 
 
     def __getitem__(self, index):
+        """
+        Builds targets of dimensions : (B, )
+        """
         # FROM HERE
 
         raw_path, W, H = self.id_images[index]
