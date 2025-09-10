@@ -6,7 +6,7 @@ class YoloLoss(nn.Module):
     def __init__(self):
         super().__init__()
         self.mse = nn.MSELoss()
-        self.bce = nn.BCEWithLogitsLoss() #with logits?
+        self.bce = nn.BCEWithLogitsLoss()
         self.entropy = nn.CrossEntropyLoss()
         self.sigmoid = nn.Sigmoid()
 
@@ -20,7 +20,7 @@ class YoloLoss(nn.Module):
         noobj = target[..., 0] == 0
 
         no_object_loss = self.bce(
-            (predictions[..., 0:1][noobj], (target[..., 0:1][noobj]))
+            predictions[..., 0:1][noobj], (target[..., 0:1][noobj])
             )
 
         #object loss

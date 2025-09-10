@@ -99,7 +99,6 @@ class YOLODataset(Dataset):
 
         return image, tuple(targets)
 
-
 def test():
     anchors = config.ANCHORS
 
@@ -128,7 +127,7 @@ def test():
 
 
     boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
-    plot_image(x[0], boxes)
+    #plot_image(x[0], boxes)
 
 if __name__ == "__main__":
     test()

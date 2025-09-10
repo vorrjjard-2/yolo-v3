@@ -479,25 +479,21 @@ def load_checkpoint(checkpoint_file, model, optimizer, lr):
         param_group["lr"] = lr
 
 
-def get_loaders(train_csv_path, test_csv_path):
+def get_loaders():
     from dataset import YOLODataset
 
     IMAGE_SIZE = config.IMAGE_SIZE
     train_dataset = YOLODataset(
-        train_csv_path,
-        transform=config.train_transforms,
+        'train',
         S=[IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8],
-        img_dir=config.IMG_DIR,
-        label_dir=config.LABEL_DIR,
         anchors=config.ANCHORS,
+        transform=config.train_transforms,
     )
     test_dataset = YOLODataset(
-        test_csv_path,
-        transform=config.test_transforms,
+        'test',
         S=[IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8],
-        img_dir=config.IMG_DIR,
-        label_dir=config.LABEL_DIR,
         anchors=config.ANCHORS,
+        transform=config.train_transforms,
     )
     train_loader = DataLoader(
         dataset=train_dataset,
@@ -515,15 +511,13 @@ def get_loaders(train_csv_path, test_csv_path):
         shuffle=False,
         drop_last=False,
     )
-
     train_eval_dataset = YOLODataset(
-        train_csv_path,
-        transform=config.test_transforms,
+        'valid',
         S=[IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8],
-        img_dir=config.IMG_DIR,
-        label_dir=config.LABEL_DIR,
         anchors=config.ANCHORS,
+        transform=config.train_transforms,
     )
+
     train_eval_loader = DataLoader(
         dataset=train_eval_dataset,
         batch_size=config.BATCH_SIZE,

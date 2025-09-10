@@ -24,7 +24,6 @@ warnings.filterwarnings("ignore")
 
 torch.backends.cudnn.benchmark = True
 
-
 def train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors):
     loop = tqdm(train_loader, leave=True)
     losses = []
@@ -38,6 +37,7 @@ def train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors):
 
         with torch.cuda.amp.autocast():
             out = model(x)
+            print(f"model size : {out}")
             loss = (
                 loss_fn(out[0], y0, scaled_anchors[0])
                 + loss_fn(out[1], y1, scaled_anchors[1])
@@ -55,7 +55,6 @@ def train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors):
         loop.set_postfix(loss=mean_loss)
 
 
-
 def main():
     model = YOLOv3(num_classes=config.NUM_CLASSES).to(config.DEVICE)
     optimizer = optim.Adam(
@@ -64,9 +63,7 @@ def main():
     loss_fn = YoloLoss()
     scaler = torch.cuda.amp.GradScaler()
 
-    train_loader, test_loader, train_eval_loader = get_loaders(
-        train_csv_path=config.DATASET + "/train.csv", test_csv_path=config.DATASET + "/test.csv"
-    )
+    train_loader, test_loader, train_eval_loader = get_loaders()
 
     if config.LOAD_MODEL:
         load_checkpoint(
@@ -82,13 +79,13 @@ def main():
         #plot_couple_examples(model, test_loader, 0.6, 0.5, scaled_anchors)
         train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors)
 
-        #if config.SAVE_MODEL:
-        #    save_checkpoint(model, optimizer, filename=f"checkpoint.pth.tar")
+        if config.SAVE_MODEL:
+            save_checkpoint(model, optimizer, filename=f"checkpoint.pth.tar")
 
-        #print(f"Currently epoch {epoch}")
-        #print("On Train Eval loader:")
-        #print("On Train loader:")
-        #check_class_accuracy(model, train_loader, threshold=config.CONF_THRESHOLD)
+        print(f"Currently epoch {epoch}")
+        print("On Train Eval loader:")
+        print("On Train loader:")
+        check_class_accuracy(model, train_loader, threshold=config.CONF_THRESHOLD)
 
         if epoch > 0 and epoch % 3 == 0:
             check_class_accuracy(model, test_loader, threshold=config.CONF_THRESHOLD)
