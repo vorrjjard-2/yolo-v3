@@ -1,8 +1,3 @@
-"""
-Creates a Pytorch dataset to load the Pascal VOC & MS COCO datasets
-"""
-
-import config
 import numpy as np
 import os
 import pandas as pd
@@ -10,7 +5,6 @@ import torch
 
 import cv2
 
-from PIL import Image, ImageFile
 from torch.utils.data import Dataset, DataLoader
 from utils import (
     pre_index,
@@ -22,32 +16,27 @@ from utils import (
     plot_image
 )
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class YOLODataset(Dataset):
     def __init__(
         self,
-        split,
-        anchors,
-        S=[13, 26, 52],
-        C=20,
-        transform=None,
+        config,
+        split='train',
+        transform=None
     ):
         self.split = split
         self.id_annotations, self.id_images, self.id_categories = pre_index(
-            os.path.join('datasets', config.DATASET, self.split, '_annotations.coco.json')
+            os.path.join('data','datasets', config["dataset"], self.split, '_annotations.coco.json')
         )
         self.transform = transform
-        self.S = S
-        self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])  # for all 3 scales
+        self.S = config["S"]
+        self.anchors = torch.tensor(config["anchors"][0] + config["anchors"][1] + config["anchors"][2])  # for all 3 scales
         self.num_anchors = self.anchors.shape[0]
         self.num_anchors_per_scale = self.num_anchors // 3
-        self.C = C
-        self.ignore_iou_thresh = 0.5
+        self.ignore_iou_thresh = config["map_iou_thresh"]
 
     def __len__(self):
         return len(self.id_annotations)
-
 
     def __getitem__(self, index):
         """
