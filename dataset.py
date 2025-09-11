@@ -118,19 +118,21 @@ def test():
         1 / torch.tensor(S).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2)
     )
     loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
-    x, y = next(iter(loader))
-    boxes = []
 
-    for i in range(y[0].shape[1]):
-        anchor = scaled_anchors[i]
-        boxes += cells_to_bboxes(
-            y[i], is_preds=False, S=y[i].shape[2], anchors=anchor
-        )[0]
+    for x, y in loader:
+        assert x.shape == torch.Size([1, 3, config.IMAGE_SIZE, config.IMAGE_SIZE])
+        print(y[0])
+       # boxes = []
 
+       # for i in range(y[0][1]):
+       #     anchor = scaled_anchors[i]
+       #     boxes += cells_to_bboxes(
+       #         y[i], is_preds=False, S=y[i].shape[2], anchors=anchor
+       #    )[0]
 
-
-    boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
-    #plot_image(x[0], boxes)
+       # boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
+       # plot_image(x[0], boxes)
+        break
 
 if __name__ == "__main__":
     test()
