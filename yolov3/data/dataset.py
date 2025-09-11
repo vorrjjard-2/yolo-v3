@@ -16,6 +16,8 @@ from utils import (
     plot_image
 )
 
+from augmentations import 
+
 
 class YOLODataset(Dataset):
     def __init__(
@@ -40,7 +42,7 @@ class YOLODataset(Dataset):
 
     def __getitem__(self, index):
         """
-        Builds targets of dimensions : (B, )
+        Builds targets of dimensions : (B, 3, S, S, C + 5)
         """
         # FROM HERE
 
