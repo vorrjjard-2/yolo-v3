@@ -1,13 +1,14 @@
 import numpy as np
 import os
-import pandas as pd
 import torch
-
+from torch.utils.data import Dataset, DataLoader
 import cv2
 
-from torch.utils.data import Dataset, DataLoader
-from utils import (
+from yolov3.data.augmentations import build_transforms
+
+from yolov3.utils.utils import (
     pre_index,
+    read_config,
     normalize_bboxes,
     denormalize_bboxes,
     cells_to_bboxes,
@@ -16,21 +17,19 @@ from utils import (
     plot_image
 )
 
-from augmentations import 
-
-
 class YOLODataset(Dataset):
     def __init__(
         self,
         config,
         split='train',
-        transform=None
+        transform=True
     ):
+        self.config = config
         self.split = split
         self.id_annotations, self.id_images, self.id_categories = pre_index(
-            os.path.join('data','datasets', config["dataset"], self.split, '_annotations.coco.json')
+            os.path.join('yolov3','data','datasets', config["dataset"], self.split, '_annotations.coco.json')
         )
-        self.transform = transform
+        self.transform = build_transforms(self.config, self.split) if transform else None
         self.S = config["S"]
         self.anchors = torch.tensor(config["anchors"][0] + config["anchors"][1] + config["anchors"][2])  # for all 3 scales
         self.num_anchors = self.anchors.shape[0]
@@ -50,7 +49,7 @@ class YOLODataset(Dataset):
         raw_bboxes = self.id_annotations[index]
 
         bboxes = normalize_bboxes(raw_bboxes, W, H)
-        image = np.array(cv2.cvtColor(cv2.imread(os.path.join(config.DATA_ROOT, config.DATASET, self.split, raw_path)), cv2.COLOR_BGR2RGB))
+        image = np.array(cv2.cvtColor(cv2.imread(os.path.join('yolov3','data','datasets', self.config["dataset"], self.split, raw_path)), cv2.COLOR_BGR2RGB))
     
         class_labels = [box[0] for box in bboxes]
         coords_only = [box[1:] for box in bboxes]
@@ -94,36 +93,40 @@ class YOLODataset(Dataset):
         return image, tuple(targets)
 
 def test():
-    anchors = config.ANCHORS
 
-    transform = config.test_transforms
+    cfg = read_config("configs/test.yaml")
+
+    anchors = cfg["anchors"]
 
     dataset = YOLODataset(
+        cfg,
         'train',
-        S=[13, 26, 52],
-        anchors=anchors,
-        transform=transform,
+        transform=True
     )
-    S = [13, 26, 52]
+
+    S = cfg["S"]
     scaled_anchors = torch.tensor(anchors) / (
         1 / torch.tensor(S).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2)
     )
     loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
 
-    for x, y in loader:
-        assert x.shape == torch.Size([1, 3, config.IMAGE_SIZE, config.IMAGE_SIZE])
-        print(y[0])
-       # boxes = []
+    x, y = next(iter(loader))
+    assert x.shape == torch.Size([1, 3, cfg["image_size"], cfg["image_size"]])
+    assert y[0].shape == torch.Size([1, 3, S[0], S[0], 6])
+    assert y[1].shape == torch.Size([1, 3, S[1], S[1], 6])
+    assert y[2].shape == torch.Size([1, 3, S[2], S[2], 6])
+    print("Test - X/Y sizes are OK.")
 
-       # for i in range(y[0][1]):
-       #     anchor = scaled_anchors[i]
-       #     boxes += cells_to_bboxes(
-       #         y[i], is_preds=False, S=y[i].shape[2], anchors=anchor
-       #    )[0]
+    boxes = []
 
-       # boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
-       # plot_image(x[0], boxes)
-        break
+    for i in range(y[0].shape[1]):
+        anchor = scaled_anchors[i]
+        boxes += cells_to_bboxes(
+            y[i], is_preds=False, S=y[i].shape[2], anchors=anchor
+        )[0]
+
+    boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
+    plot_image(x[0], boxes)
 
 if __name__ == "__main__":
     test()
