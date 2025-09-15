@@ -62,7 +62,6 @@ class Darknet53(nn.Module):
         
         return tuple(features)
 
-
 def test():
     net = Darknet53()
     raw = torch.randn([1, 3, 416, 416])
@@ -72,7 +71,7 @@ def test():
     assert f2.shape == torch.Size([1, 512, 26, 26])
     assert f3.shape == torch.Size([1, 1024, 13, 13])
 
-    print("Test - Feature map shapes are correct for a single image.")
+    print("Test - Feature map shapes are correct.")
 
 if __name__ == "__main__":
     test()

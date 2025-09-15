@@ -87,7 +87,6 @@ class ScalePrediction(nn.Module):
             .permute(0, 1, 3, 4, 2)
         )
 
-
 class YOLOv3(nn.Module):
     def __init__(self, in_channels=3, num_classes=80):
         super().__init__()
@@ -150,7 +149,6 @@ class YOLOv3(nn.Module):
                     in_channels = in_channels * 3
 
         return layers
-
 
 if __name__ == "__main__":
     num_classes = 20
