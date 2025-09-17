@@ -65,9 +65,7 @@ class ResidualBlock(nn.Module):
                 x = x + layer(x)
             else:
                 x = layer(x)
-
         return x
-
 
 class ScalePrediction(nn.Module):
     def __init__(self, in_channels, num_classes):
