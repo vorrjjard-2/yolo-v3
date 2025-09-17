@@ -18,6 +18,26 @@ class YOLOv3VanillaNeck(nn.Module):
             [(128, 1, 1), (256, 3, 1), (128, 1, 1), (256, 3, 1), (128, 1, 1)]
         ]
 
+        self.reduce54 = nn.Sequential(
+            CNNBlock(
+                in_channels=512,
+                out_channels=256,
+                kernel_size=1,
+                stride=1
+            ),
+            nn.Upsample(scale_factor=2)
+        )
+
+        self.reduce43 = nn.Sequential(
+            CNNBlock(
+                in_channels=256,
+                out_channels=128,
+                kernel_size=1,
+                stride=1
+            ),
+            nn.Upsample(scale_factor=2)
+        )
+
         architecture = []
 
         for i, block in enumerate(self.config):
@@ -42,28 +62,14 @@ class YOLOv3VanillaNeck(nn.Module):
         self.p4 = architecture[1]
         self.p3 = architecture[2]
 
-    def _upsample_conv(self, x):
-        in_channels = x.shape[1]
-        stages = nn.Sequential(
-            CNNBlock(
-                in_channels=in_channels,
-                out_channels=in_channels // 2,
-                kernel_size = 1,
-                stride=1
-            ),
-            nn.Upsample(scale_factor=2)
-        )
-
-        return stages(x)
-
     def forward(self, maps : tuple):
         C3, C4, C5 = maps
     
         P5 = self.p5(C5)
-        C4 = torch.cat((self._upsample_conv(P5), C4), dim=1)
+        C4 = torch.cat((self.reduce54(P5), C4), dim=1)
 
         P4 = self.p4(C4)
-        C3 = torch.cat((self._upsample_conv(P4), C3), dim=1)
+        C3 = torch.cat((self.reduce43(P4), C3), dim=1)
 
         P3 = self.p3(C3)
 
