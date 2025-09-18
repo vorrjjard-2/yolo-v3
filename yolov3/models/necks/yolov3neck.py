@@ -8,6 +8,9 @@ from yolov3.models.common import (
 
 from yolov3.models.backbones.darknet53 import Darknet53
 
+from yolov3.models.registry import NECK
+
+@NECK.register()
 class YOLOv3VanillaNeck(nn.Module):
     def __init__(self, in_channels=(1024, 768, 384)):
         super().__init__()
