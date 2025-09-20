@@ -21,8 +21,6 @@ class Registry:
     def __repr__(self):
         return f"Registry({self._name}, items={list(self._module_dict.keys())})"
 
-
-# ---- registries for project ----
 MODEL     = Registry("MODEL")
 BACKBONE  = Registry("BACKBONE")
 NECK      = Registry("NECK")

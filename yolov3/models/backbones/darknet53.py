@@ -8,7 +8,6 @@ from yolov3.models.common import (
 
 from yolov3.models.registry import BACKBONE
 
-
 @BACKBONE.register()
 class Darknet53(nn.Module):
     def __init__(self, in_channels=3):

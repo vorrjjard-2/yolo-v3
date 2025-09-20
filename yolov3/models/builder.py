@@ -26,3 +26,5 @@ def build_from_config(cfg):
     model = model_cls(backbone=backbone, neck=neck, head=head, **cfg["model"].get("kwargs", {}))
 
     return model
+
+

@@ -376,7 +376,6 @@ def get_evaluation_bboxes(
     model.train()
     return all_pred_boxes, all_true_boxes
 
-
 def cells_to_bboxes(predictions, anchors, S, is_preds=True):
     """
     Scales the predictions coming from the model to

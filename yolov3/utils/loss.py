@@ -1,7 +1,10 @@
 import torch
 import torch.nn as nn
-from utils import intersection_over_union
+from yolov3.utils.utils import intersection_over_union
 
+from yolov3.models.registry import LOSS
+
+@LOSS.register()
 class YoloLoss(nn.Module):
     def __init__(self):
         super().__init__()
