@@ -11,14 +11,22 @@ num_workers: 4
 batch_size: 4
 pin_memory: true
 
-backbone: Darknet53
-neck: FPN
-head : YOLOv3MultiScaleHead
+backbone:
+  type: Darknet53
+  kwargs:
+    in_channels : 3
 
+neck:
+  type: FPN    
 
+head : 
+  type: YOLOv3MultiScaleHead
+  kwargs:
+    in_channels_list : [1024, 512, 256]
+    num_classes : 80
 
-
-
+model:
+  type: YOLOv3
 
 # training
 num_classes: 80

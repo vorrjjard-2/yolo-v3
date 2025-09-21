@@ -1,4 +1,3 @@
-import config
 import torch
 import torch.optim as optim
 from tqdm import tqdm
@@ -7,6 +6,13 @@ warnings.filterwarnings("ignore")
 
 torch.backends.cudnn.benchmark = True
 
+import os
+
+from yolov3.models.backbones.darknet53 import Darknet53
+from yolov3.models.necks.yolov3neck import YOLOv3VanillaNeck
+from yolov3.models.heads.head import YOLOv3MultiScaleHead
+from yolov3.models.models.yolov3 import YOLOv3
+
 from yolov3.utils.utils import (
     mean_average_precision,
     cells_to_bboxes,
@@ -14,43 +20,72 @@ from yolov3.utils.utils import (
     save_checkpoint,
     load_checkpoint,
     check_class_accuracy,
-    get_loaders,
     plot_couple_examples,
-
     read_config
 )
 
-from yolov3.engine.builder import build_from_config
+from yolov3.models.builder import build_from_config
+from yolov3.data.loader import get_loaders
 from yolov3.utils.loss import YoloLoss
+
+def train_fn(CONFIG, train_loader, model, optimizer, loss_fn, scaler, scaled_anchors):
+    loop = tqdm(train_loader, leave=True)
+    losses = []
+    for batch_idx, (x, y) in enumerate(loop):
+        x = x.to(CONFIG["device"])
+        y0, y1, y2 = (
+            y[0].to(CONFIG["device"]),
+            y[1].to(CONFIG["device"]),
+            y[2].to(CONFIG["device"]),
+        )
+
+        with torch.cuda.amp.autocast():
+            out = model(x)
+            loss = (
+                loss_fn(out[0], y0, scaled_anchors[0])
+                + loss_fn(out[1], y1, scaled_anchors[1])
+                + loss_fn(out[2], y2, scaled_anchors[2])
+            )
+
+        losses.append(loss.item())
+        optimizer.zero_grad()
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        # update progress bar
+        mean_loss = sum(losses) / len(losses)
+        loop.set_postfix(loss=mean_loss)
 
 def main():
 
-    cfg_name = "test.yaml"
-    CONFIG = read_config(os.join('configs', cfg_name))
+    cfg_name = "test.yaml" # !!!
+    CONFIG = read_config(os.path.join('configs', cfg_name))
 
-    model = build_from_config(CONFIG).to(config["device"])
+    model = build_from_config(CONFIG).to(CONFIG["device"])
 
     optimizer = optim.Adam(
-        model.parameters(), lr=config.LEARNING_RATE, weight_decay=config.WEIGHT_DECAY
+        model.parameters(), lr=float(CONFIG["learning_rate"]), weight_decay=float(CONFIG["weight_decay"])
     )
+
     loss_fn = YoloLoss()
     scaler = torch.cuda.amp.GradScaler()
 
-    train_loader, test_loader, train_eval_loader = get_loaders()
+    train_loader, valid_loader, test_loader = get_loaders(CONFIG)
 
-    if config.LOAD_MODEL:
+    if CONFIG["load_model"]:
         load_checkpoint(
-            config.CHECKPOINT_FILE, model, optimizer, config.LEARNING_RATE
+            CONFIG["checkpoint_file"], model, optimizer, CONFIG["learning_rate"]
         )
 
     scaled_anchors = (
-        torch.tensor(config.ANCHORS)
-        * torch.tensor(config.S).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2)
-    ).to(config.DEVICE)
+        torch.tensor(CONFIG["anchors"])
+        * torch.tensor(CONFIG["S"]).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2)
+    ).to(CONFIG["device"])
 
-    for epoch in range(config.NUM_EPOCHS):
+    for epoch in range(CONFIG["num_epochs"]):
         #plot_couple_examples(model, test_loader, 0.6, 0.5, scaled_anchors)
-        train_fn(train_loader, model, optimizer, loss_fn, scaler, scaled_anchors)
+        train_fn(CONFIG, train_loader, model, optimizer, loss_fn, scaler, scaled_anchors)
 
         #if config.SAVE_MODEL:
         #    save_checkpoint(model, optimizer, filename=f"checkpoint.pth.tar")
@@ -60,24 +95,24 @@ def main():
         #print("On Train loader:")
         #check_class_accuracy(model, train_loader, threshold=config.CONF_THRESHOLD)
 
-        if epoch > 0 and epoch % 3 == 0:
-            check_class_accuracy(model, test_loader, threshold=config.CONF_THRESHOLD)
-            pred_boxes, true_boxes = get_evaluation_bboxes(
-                test_loader,
-                model,
-                iou_threshold=config.NMS_IOU_THRESH,
-                anchors=config.ANCHORS,
-                threshold=config.CONF_THRESHOLD,
-            )
-            mapval = mean_average_precision(
-                pred_boxes,
-                true_boxes,
-                iou_threshold=config.MAP_IOU_THRESH,
-                box_format="midpoint",
-                num_classes=config.NUM_CLASSES,
-            )
-            print(f"MAP: {mapval.item()}")
-            model.train()
+        # if epoch > 0 and epoch % 3 == 0:
+        #     check_class_accuracy(model, test_loader, threshold=config.CONF_THRESHOLD)
+        #     pred_boxes, true_boxes = get_evaluation_bboxes(
+        #         test_loader,
+        #         model,
+        #         iou_threshold=config.NMS_IOU_THRESH,
+        #         anchors=config.ANCHORS,
+        #         threshold=config.CONF_THRESHOLD,
+        #     )
+        #     mapval = mean_average_precision(
+        #         pred_boxes,
+        #         true_boxes,
+        #         iou_threshold=config.MAP_IOU_THRESH,
+        #         box_format="midpoint",
+        #         num_classes=config.NUM_CLASSES,
+        #     )
+        #     print(f"MAP: {mapval.item()}")
+        #     model.train()
 
 
 if __name__ == "__main__":

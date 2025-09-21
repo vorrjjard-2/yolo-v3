@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 
+from yolov3.models.registry import MODEL
+
 @MODEL.register()
 class YOLOv3(nn.Module):
-    def __init__(self, backbone, neck, head, num_classes, anchors, strides):
+    def __init__(self, backbone, neck, head):
         super().__init__()
         self.backbone = backbone
         self.neck = neck

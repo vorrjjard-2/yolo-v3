@@ -11,20 +11,34 @@ from yolov3.models.registry import (
     OPTIMIZER,
     SCHEDULER
 )
-
 def build_from_config(cfg):
+    # Backbone
     backbone_cls = BACKBONE[cfg["backbone"]["type"]]
-    backbone = backbone_cls(**cfg["backbone"].get("kwargs", {}))
+    backbone_kwargs = cfg["backbone"].get("kwargs", {})
+    print("[Backbone]", backbone_cls.__name__, backbone_kwargs)
+    backbone = backbone_cls(**backbone_kwargs)
 
+    # Neck
     neck_cls = NECK[cfg["neck"]["type"]]
-    neck = neck_cls(**cfg["neck"].get("kwargs", {}))
+    neck_kwargs = cfg["neck"].get("kwargs", {})
+    print("[Neck]", neck_cls.__name__, neck_kwargs)
+    neck = neck_cls(**neck_kwargs)
 
+    # Head
     head_cls = HEAD[cfg["head"]["type"]]
-    head = head_cls(**cfg["head"].get("kwargs", {}))
+    head_kwargs = cfg["head"].get("kwargs", {})
+    print("[Head]", head_cls.__name__, head_kwargs)
+    head = head_cls(**head_kwargs)
 
+    # Model
     model_cls = MODEL[cfg["model"]["type"]]
-    model = model_cls(backbone=backbone, neck=neck, head=head, **cfg["model"].get("kwargs", {}))
+    model_kwargs = cfg["model"].get("kwargs", {})
+    print("[Model]", model_cls.__name__, model_kwargs)
+    model = model_cls(
+        backbone=backbone,
+        neck=neck,
+        head=head,
+        **model_kwargs
+    )
 
     return model
-
-
