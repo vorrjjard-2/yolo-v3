@@ -29,6 +29,10 @@ class YOLOv3Head(nn.Module):
 
 @HEAD.register()
 class YOLOv3MultiScaleHead(nn.Module):
+    """
+    Multiscale head for YOLO. why is it reversing the heads bro wtf
+    """
+
     def __init__(self, in_channels_list, num_classes):
         super().__init__()
         self.heads = nn.ModuleList([
@@ -36,4 +40,19 @@ class YOLOv3MultiScaleHead(nn.Module):
         ])
 
     def forward(self, features): 
-        return [head(f) for head, f in zip(self.heads, features)]
+        x = [head(f) for head, f in zip(self.heads, features)]
+        return x
+
+
+def test():
+    num_classes = 80
+
+    P3, P4, P5 = torch.randn([1, 128, 52, 52]), torch.randn([1, 256, 26, 26]), torch.randn([1, 512, 13, 13])
+    head = YOLOv3MultiScaleHead([128, 256, 512], num_classes)
+
+    x = head((P3, P4, P5))
+
+    print(x[0].shape, x[1].shape, x[2].shape)
+
+if __name__ == "__main__":
+    test()

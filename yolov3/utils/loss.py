@@ -19,6 +19,15 @@ class YoloLoss(nn.Module):
         self.lambda_box = 10
 
     def forward(self, predictions, target, anchors):
+        """
+        Returns loss for YOLOv3 predictions.
+
+        Input :
+            predictions : [B, S, G, G, 5 + C]
+            target :      [B, S, G, G, 6]
+        
+        """
+
         obj = target[..., 0] == 1
         noobj = target[..., 0] == 0
 
@@ -49,5 +58,10 @@ class YoloLoss(nn.Module):
             self.lambda_obj * object_loss +
             self.lambda_noobj * no_object_loss +
             self.lambda_class * class_loss
-
         )
+
+def test():
+    pass
+
+if __name__ == "__main__":
+    test()

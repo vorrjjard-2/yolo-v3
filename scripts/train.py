@@ -40,11 +40,11 @@ def train_fn(CONFIG, train_loader, model, optimizer, loss_fn, scaler, scaled_anc
         )
 
         with torch.cuda.amp.autocast():
-            out = model(x)
+            P3, P4, P5 = model(x) # torch.Size([1, 3, 52, 52, 85]) torch.Size([1, 3, 26, 26, 85]) torch.Size([1, 3, 13, 13, 85])
             loss = (
-                loss_fn(out[0], y0, scaled_anchors[0])
-                + loss_fn(out[1], y1, scaled_anchors[1])
-                + loss_fn(out[2], y2, scaled_anchors[2])
+                loss_fn(P5, y0, scaled_anchors[0])
+                + loss_fn(P4, y1, scaled_anchors[1])
+                + loss_fn(P3, y2, scaled_anchors[2])
             )
 
         losses.append(loss.item())
