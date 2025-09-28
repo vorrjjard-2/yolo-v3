@@ -62,9 +62,6 @@ def main():
     cfg_name = "test.yaml" # !!!
     CONFIG = read_config(os.path.join('configs', cfg_name))
 
-    if config["seed"]:
-        seed_everything(42)
-
     model = build_from_config(CONFIG).to(CONFIG["device"])
 
     optimizer = optim.Adam(
@@ -90,8 +87,8 @@ def main():
         #plot_couple_examples(model, test_loader, 0.6, 0.5, scaled_anchors)
         train_fn(CONFIG, train_loader, model, optimizer, loss_fn, scaler, scaled_anchors)
 
-        if config.SAVE_MODEL:
-            save_checkpoint(model, optimizer, filename=f"checkpoint.pth.tar")
+        #if config.SAVE_MODEL:
+        #    save_checkpoint(model, optimizer, filename=f"checkpoint.pth.tar")
 
         #print(f"Currently epoch {epoch}")
         #print("On Train Eval loader:")
@@ -116,6 +113,7 @@ def main():
         #     )
         #     print(f"MAP: {mapval.item()}")
         #     model.train()
+
 
 if __name__ == "__main__":
     main()
