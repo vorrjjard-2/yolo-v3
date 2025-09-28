@@ -65,9 +65,7 @@ class ResidualBlock(nn.Module):
                 x = x + layer(x)
             else:
                 x = layer(x)
-
         return x
-
 
 class ScalePrediction(nn.Module):
     def __init__(self, in_channels, num_classes):
@@ -86,7 +84,6 @@ class ScalePrediction(nn.Module):
             .reshape(x.shape[0], 3, self.num_classes + 5, x.shape[2], x.shape[3])
             .permute(0, 1, 3, 4, 2)
         )
-
 
 class YOLOv3(nn.Module):
     def __init__(self, in_channels=3, num_classes=80):
@@ -150,7 +147,6 @@ class YOLOv3(nn.Module):
                     in_channels = in_channels * 3
 
         return layers
-
 
 if __name__ == "__main__":
     num_classes = 20

@@ -1,0 +1,49 @@
+# paths / dataset
+dataset: COCO
+
+# image & model scale
+image_size: 416
+S: [13, 26, 52]
+
+# device & loader
+device: "cuda"
+num_workers: 4
+batch_size: 4
+pin_memory: true
+
+backbone:
+  type: Darknet53
+  kwargs:
+    in_channels : 3
+
+neck:
+  type: FPN    
+
+head : 
+  type: YOLOv3MultiScaleHead
+  kwargs:
+    in_channels_list : [128, 256, 512]
+    num_classes : 80
+
+model:
+  type: YOLOv3
+
+# training
+num_classes: 80
+learning_rate: 1e-5
+weight_decay: 1e-4
+num_epochs: 100
+load_model: false
+save_model: true
+checkpoint_file: "checkpoint.pth.tar"
+
+# inference / eval
+conf_threshold: 0.05
+map_iou_thresh: 0.5
+nms_iou_thresh: 0.45
+
+# anchors normalized to [0,1]
+anchors:
+  - [[0.28, 0.22], [0.38, 0.48], [0.9, 0.78]]
+  - [[0.07, 0.15], [0.15, 0.11], [0.14, 0.29]]
+  - [[0.02, 0.03], [0.04, 0.07], [0.08, 0.06]]

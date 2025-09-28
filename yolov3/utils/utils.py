@@ -1,4 +1,3 @@
-import config
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -15,6 +14,22 @@ from collections import Counter
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import yaml
+from pathlib import Path
+
+def read_config(path: str | Path) -> dict:
+    """
+    Read a YAML config and return it as a dict.
+    
+    Example:
+        cfg = read_config("configs/coco/yolov3_darknet53.yaml")
+        print(cfg["data"]["image_size"])
+    """
+    path = Path(path)
+    with path.open("r") as f:
+        cfg = yaml.safe_load(f)
+    return cfg
+
 def pre_index(annotation_path):
     with open(annotation_path, 'r') as file:
         annotations = json.load(file)
@@ -23,13 +38,10 @@ def pre_index(annotation_path):
     id_images = {}
     id_categories = {} 
 
-    #ID TO ANNOTATIONS
-
     for item in annotations["annotations"]:
         img_id = item['image_id']
         id_annotations[img_id].append([item['category_id']] + item['bbox'])
 
-    # ID TO IMAGE
     for item in annotations["images"]:
         id = item['id']
         id_images[id] = (item['file_name'], item['width'], item['height'])
@@ -65,8 +77,6 @@ def denormalize_bboxes(raw_bboxes, W, H):
         denorm_boxes.append([i, c, x, y, w, h])
 
     return denorm_boxes
-
-
 
 def iou_width_height(boxes1, boxes2):
     """
@@ -291,12 +301,12 @@ def mean_average_precision(
 
 def plot_image(raw_img, bboxes):
     raw_img = raw_img.permute(1, 2, 0)
-    bboxes = denormalize_bboxes(bboxes, config.IMAGE_SIZE, config.IMAGE_SIZE)
+    W, H = raw_img.shape[0:2]
+
+    bboxes = denormalize_bboxes(bboxes, W, H) # NOT SURE IF THIS IS CORRECT ORDER !!
 
     image = np.array(raw_img)
     fig, ax = plt.subplots(1)
-
-    print(image.shape)
 
     ax.imshow(image)
     for bbox_coords in bboxes:
@@ -309,12 +319,7 @@ def plot_image(raw_img, bboxes):
     ax.set_yticks([])
     ax.set_xticklabels([])
     ax.set_yticklabels([])
-
-    print(f'Displaying images with {len(bboxes)} boxes.' )
-
     plt.show()
-    plt.savefig('fig.jpg')
-
 
 def get_evaluation_bboxes(
     loader,
@@ -325,7 +330,6 @@ def get_evaluation_bboxes(
     box_format="midpoint",
     device="cuda",
 ):
-    # make sure model is in eval before get bboxes
     model.eval()
     train_idx = 0
     all_pred_boxes = []
@@ -371,7 +375,6 @@ def get_evaluation_bboxes(
 
     model.train()
     return all_pred_boxes, all_true_boxes
-
 
 def cells_to_bboxes(predictions, anchors, S, is_preds=True):
     """
