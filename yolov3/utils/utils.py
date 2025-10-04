@@ -415,19 +415,19 @@ def cells_to_bboxes(predictions, anchors, S, is_preds=True):
     converted_bboxes = torch.cat((best_class, scores, x, y, w_h), dim=-1).reshape(BATCH_SIZE, num_anchors * S * S, 6)
     return converted_bboxes.tolist()
 
-def check_class_accuracy(model, loader, threshold):
+def check_class_accuracy(CONFIG, model, loader, threshold):
     model.eval()
     tot_class_preds, correct_class = 0, 0
     tot_noobj, correct_noobj = 0, 0
     tot_obj, correct_obj = 0, 0
 
     for idx, (x, y) in enumerate(tqdm(loader)):
-        x = x.to(config.DEVICE)
+        x = x.to(CONFIG["device"])
         with torch.no_grad():
             out = model(x)
 
         for i in range(3):
-            y[i] = y[i].to(config.DEVICE)
+            y[i] = y[i].to(CONFIG["device"])
             obj = y[i][..., 0] == 1 # in paper this is Iobj_i
             noobj = y[i][..., 0] == 0  # in paper this is Iobj_i
 
